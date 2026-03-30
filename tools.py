@@ -8,7 +8,6 @@ from openai import OpenAI
 from dotenv import load_dotenv
 from huggingface_hub import login
 from sentence_transformers import SentenceTransformer
-from qdrant_client import QdrantClient
 import os 
 import logging
 
