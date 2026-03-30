@@ -18,7 +18,7 @@ agent = agent_workflow.compile()
 
 #-------------------------
 
-messages = [HumanMessage(content = "what is machine learning ? what is love ?")]
+messages = [HumanMessage(content = "Hi, how are you  ?")]
 resp  = agent.invoke({"messages":messages})
 for m in resp['messages']:
     m.pretty_print()

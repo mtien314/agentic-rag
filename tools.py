@@ -1,20 +1,25 @@
 from langchain.tools import tool
 from langchain.chat_models import init_chat_model
-from langchain_groq import ChatGroq
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from groq import Groq
 from ragas.llms import llm_factory
 from ragas.metrics import DiscreteMetric
 from openai import OpenAI
 from dotenv import load_dotenv
 from huggingface_hub import login
 from sentence_transformers import SentenceTransformer
+from qdrant_client import QdrantClient
 import os 
+import logging
+
 load_dotenv()
 
+
+logging.basicConfig(level = logging.DEBUG, format ='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 access_token = os.getenv("ACCESS_TOKEN")
-model_name = "openai/gpt-oss-20b"
+model_name = "openai/gpt-oss-120b"
 model = init_chat_model(
     model_name,
     model_provider="Groq",
@@ -23,7 +28,7 @@ model = init_chat_model(
 
 #load embeddings model
 login(access_token)
-embedding_model = SentenceTransformer("google/embeddinggemma-300m")
+embedding_model = SentenceTransformer("all-MiniLM-L6-v2") #choose model size lightweight
 
 
 #define tools
@@ -64,27 +69,29 @@ embedding_model = SentenceTransformer("google/embeddinggemma-300m")
 #   return a*b
 
 @tool
-def retrieval(query: str):
-  """Document about machine learning , RAG.
-    retrieval relevant documents
+def retrieval(query: str) -> list:
+  """Documents about machine learning , RAG and love. 
+      if user ask some question related to machine learning, RAG or love, please use the tool first.
+      Extract relevant documents
     args:
-      query: user's query
+      query: user's query 
   """
-
+  logger.info("Start extract documents")
   documents = [
     "Machine learning is a subset of artificial intelligence (AI) that enables computers to learn from data and improve their performance over time without being explicitly programmed for every specific task",
-   # "Love is messy",
+    "Love is messy",
     "Retrieval-Augmented Generation (RAG) is an AI framework that improves Large Language Model (LLM) accuracy by retrieving data from external, trusted knowledge bases (documents, databases, internet) before generating a response"
   ]
   embeddings_documents = embedding_model.encode(documents)
   embeddings_query = embedding_model.encode(query)
-  dim = 768
+  dim = 384
   embed_query = np.array(embeddings_documents.reshape(-1,dim))
   embed_documents = np.array(embeddings_query.reshape(-1,dim))
-  cosine_similarity_all_documents = cosine_similarity(embed_query, embed_documents)
-  index = np.argmax(cosine_similarity_all_documents) #find the most relevant document
-  doc = documents[index]
-  return doc
+  cosine_similarity_all_documents = np.array(cosine_similarity(embed_query, embed_documents))
+  index = np.argsort(cosine_similarity_all_documents.flatten().tolist()) #find the most relevant document
+  doc = [documents[i] for i in index]
+  doc = doc[::-1]
+  return doc[0]
 
 @tool
 def summary(query: str, doc: str):
@@ -124,7 +131,6 @@ def eval_response(query:str, documents:str):
     )
   return score.value
   
-
 #augment the llm with tools
 tools = [retrieval]
 tool_by_name = {tool.name:tool for tool in tools}

@@ -6,7 +6,11 @@ from typing import Literal
 from tools import model_with_tools, tool_by_name
 from typing_extensions import List, Annotated, TypedDict
 import operator
+import logging
 
+
+logging.basicConfig(level = logging.DEBUG, format ='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 class State(TypedDict):
     messages: Annotated[List[AnyMessage],operator.add]
@@ -23,22 +27,17 @@ def llm_call(state: dict):
     # if last_messages.content == "pass":
     #     #finish dont need you llm
     #     return 
-    
+    logger.info("LLM call ..")    
     return {
         "messages":[
             model_with_tools.invoke(
                 [
                     SystemMessage(
                         content = """You are a helpful assistant that performs arithmetic using external tools.
-                                Rules:
-                                1. If tool results are available, use them as the final answer.
-                                2. Do NOT override or recompute tool outputs.
-                                3. If the tool does NOT provide a result or returns empty/invalid output,
-                                then use your own knowledge to generate the answer.
-
-                                Always prioritize tool outputs over your own reasoning.
-
-                                """
+                                Think step by step analyze the question. If it have many questions, thinking and break down to small steps if need.
+                                Each steps always decide whether to call a tool or not based on the question and your own knowledge.
+                                If use tool choose the most suitable documents that extracted from tool to answer the question.
+                                If use the tool get the results, you should use remain results to answer the question. Don't add more information. Else use your own knowledge"""
                     )
                 ]
                 + state["messages"]
@@ -67,14 +66,15 @@ def should_continue(state: State) -> Literal["tool_node", END]: #only return too
 
 def tool_node(state: dict):
     """Performs the tool calls"""
+    logger.info("Node: tool_node....")
     result = []
     final_response = state.get("final_response","")
 
     for tool_call in state['messages'][-1].tool_calls:
-        print(tool_call)
         tool = tool_by_name[tool_call["name"]]
         observation = tool.invoke(tool_call['args'])
         if tool_call["name"] == "retrieval":
             final_response = observation
         result.append(ToolMessage(content = observation, tool_call_id = tool_call['id']))
+
     return {"messages":result, "final_response":final_response}
