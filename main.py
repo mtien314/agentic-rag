@@ -1,4 +1,3 @@
-
 from langgraph.graph import StateGraph, START, END
 from langchain.messages import HumanMessage
 from nodes import should_continue, tool_node, llm_call, State
@@ -18,7 +17,7 @@ agent = agent_workflow.compile()
 
 #-------------------------
 
-messages = [HumanMessage(content = "Hi, how are you  ?")]
+messages = [HumanMessage(content = "what is machine learning ?")]
 resp  = agent.invoke({"messages":messages})
 for m in resp['messages']:
     m.pretty_print()
