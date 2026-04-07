@@ -1,12 +1,10 @@
 from langchain_core.messages import SystemMessage,AnyMessage
+from langchain_core.tools import StructuredTool
 from langchain.messages import ToolMessage
 from langgraph.graph import StateGraph, START, END
 from langchain.chat_models import init_chat_model
-
 from typing import Literal
 from tools import ToolNodes
-from langchain_core.tools import StructuredTool
-
 from typing_extensions import List, Annotated, TypedDict
 import operator
 import logging
@@ -47,7 +45,7 @@ class Edge:
     
     def llm_call(self, state: dict):
         """LLM decide whether to call a tool or not"""
-        
+
         logger.info("LLM call ..")    
 
         return {
