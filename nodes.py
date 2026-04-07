@@ -8,7 +8,7 @@ from tools import ToolNodes
 from typing_extensions import List, Annotated, TypedDict
 import operator
 import logging
-
+import backoff
 
 logging.basicConfig(level = logging.DEBUG, format ='%(asctime)s - %(levelname)s - %(name)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -43,6 +43,7 @@ class Edge:
         self.model_with_tools = model.bind_tools(self.tools)
         self.tool_by_name = {tool.name: tool for tool in self.tools}
     
+    @backoff.on_exception(backoff.expo, Exception, max_tries=3)
     def llm_call(self, state: dict):
         """LLM decide whether to call a tool or not"""
 
